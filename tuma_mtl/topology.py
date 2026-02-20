@@ -34,7 +34,7 @@ ensuring structured communication zones and well-placed APs for decoding purpose
 import numpy as np # type: ignore
 import matplotlib.pyplot as plt # type: ignore
 
-from devices import AccessPoint
+from tuma_mtl.devices import AccessPoint
 
 class Zone:
     """ Represents a square-shaped zone in the system. """

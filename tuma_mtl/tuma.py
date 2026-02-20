@@ -38,10 +38,10 @@ import os
 import numpy as np # type: ignore
 import matplotlib.pyplot as plt # type: ignore
 
-from centralized_decoder import centralized_decoder
-from distributed_decoder import distributed_decoder
-from amp_da import AMP_DA
-from prior import compute_prior
+from tuma_mtl.centralized_decoder import centralized_decoder
+from tuma_mtl.distributed_decoder import distributed_decoder
+from tuma_mtl.amp_da import AMP_DA
+from tuma_mtl.prior import compute_prior
 
 class TUMAEnvironment:
     """

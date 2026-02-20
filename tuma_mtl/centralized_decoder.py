@@ -32,7 +32,7 @@ import numpy as np # type: ignore
 import matplotlib.pyplot as plt # type: ignore
 from copy import deepcopy
 
-from bayesian_denoiser import *
+from tuma_mtl.bayesian_denoiser import *
 
 def compute_T(Z, n, A, B):
     """ Computes covariance matrix of residual noise. """

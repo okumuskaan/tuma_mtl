@@ -152,3 +152,54 @@ def wasserstein_distance(F1, F2, W1, W2, c=np.inf, p=2):
     fval = (res.fun / np.sum(res.x))**(1/p) if np.sum(res.x) > 0 else 0
 
     return fval
+
+def dGOSPAlike(empirical_pmd, ws_dist, c, p=2):
+    return (
+        ws_dist**p +
+        (empirical_pmd * c**p)
+    )**(1/p)
+
+
+def compute_tuma_mtl_performance_metric(true_positions, detected_positions, estimated_positions, 
+                            detected_types, estimated_types, c, p=2):
+    """
+    Computes the TUMA-MTL performance metric.
+
+    Parameters:
+    - true_positions: np.array, shape (T, 1) - Positions of all true targets (active & inactive).
+    - detected_positions: np.array, shape (T_d, 1) - Positions of detected true targets.
+    - estimated_positions: np.array, shape (T̂_d, 1) - Positions of estimated active targets.
+    - detected_types: np.array, shape (T_d, 1) - True multiplicities of detected targets.
+    - estimated_types: np.array, shape (T̂_d, 1) - Estimated multiplicities of detected targets.
+    - c: float - Truncation parameter for Wasserstein distance.
+    - alpha: float - Parameter for missed detection penalty.
+    - p: int - Wasserstein distance exponent.
+
+    Returns:
+    - empirical_pmd: int - Empirical misdetection probability.
+    - ws_dist: float - Wasserstein distance between distributions.
+    - dGOSPAlike: float - The computed GOSPA-like cost metric.
+    """
+
+    T = len(true_positions)  # Total true targets
+    T_d = len(detected_positions)  # Detected targets
+
+    # Compute Wasserstein distance for communication errors
+    ws_dist = wasserstein_distance(
+        detected_positions.reshape(-1, 1),
+        estimated_positions.reshape(-1, 1),
+        detected_types.reshape(-1, 1),
+        estimated_types.reshape(-1, 1),
+        p=p
+    )
+
+    # Compute empirical missed detection probability in sensing (true targets not detected)
+    empirical_pmd = 1- T_d/T
+
+    # Compute final GOSPA-like cost metric
+    dGOSPAlike = (
+        ws_dist**p +
+        (empirical_pmd * c**p)
+    )**(1/p)
+    
+    return empirical_pmd, ws_dist, dGOSPAlike

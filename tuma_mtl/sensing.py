@@ -36,7 +36,7 @@ from scipy.optimize import bisect # type: ignore
 import numpy as np # type: ignore
 import matplotlib.pyplot as plt # type: ignore
 
-from devices import *
+from tuma_mtl.devices import *
 
 def marcumq(a, b, m=1):
     """Computes the generalized Marcum Q-function."""

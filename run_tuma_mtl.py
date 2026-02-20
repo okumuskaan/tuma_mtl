@@ -19,7 +19,7 @@ and executing the `TUMA_MTL_Simulation`. It integrates:
 - Decoding parameters (AMP iterations, Monte Carlo runs).
 """
 
-from tuma_mtl_simulation import TUMA_MTL_Simulation
+from tuma_mtl import TUMA_MTL_Simulation
 
 # ------------------------- Simulation Parameters -------------------------
 
@@ -73,6 +73,10 @@ N_MC = 500 # number of MC samples for covariance approximations
 # Number of Monte Carlo runs
 nMCs = 100
 
+# Metric parameters
+c = area_side / ((2**6)**0.5) # misdetection weight in GOSPA-like cost
+p = 2 # exponent in in GOSPA-like cost
+
 # ------------------------- Run the Simulation -------------------------
 
 # Create simulation instance
@@ -86,7 +90,8 @@ tuma_mtl_sim = TUMA_MTL_Simulation(
     M=M, A=A, rho=rho, d0=d0, SNR_rx_dB=SNR_rx_dB, 
     N_c=N_c, P_c=P_c, 
     nMCs=nMCs, perfect_comm=perfect_comm, 
-    nAMPIter=nAMPiter, N_MC=N_MC, decoder_type=decoder_type
+    nAMPIter=nAMPiter, N_MC=N_MC, decoder_type=decoder_type,
+    c=c, p=p
 )
 
 # Run the experiment

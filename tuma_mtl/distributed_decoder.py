@@ -31,7 +31,7 @@ before aggregation at the CPU.
 import numpy as np # type: ignore
 import matplotlib.pyplot as plt # type: ignore
 
-from bayesian_denoiser import *
+from tuma_mtl.bayesian_denoiser import *
 
 class AP:
     def __init__(self, id, A, Cx, Cy, U, M, n, P, nAMPiter, Y, all_covs, all_covs_smaller, priors, log_priors, X_true=None, sigma_w=None, withOnsager=False):

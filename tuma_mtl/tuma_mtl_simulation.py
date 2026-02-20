@@ -65,11 +65,11 @@ import os
 import datetime
 import numpy as np # type: ignore
 
-from sensing import SensingEnvironment
-from topology import NetworkTopology
-from quant import QuantizationEnvironment
-from tuma import TUMAEnvironment
-from metrics import *
+from tuma_mtl.sensing import SensingEnvironment
+from tuma_mtl.topology import NetworkTopology
+from tuma_mtl.quant import QuantizationEnvironment
+from tuma_mtl.tuma import TUMAEnvironment
+from tuma_mtl.metrics import *
 
 class TUMA_MTL_Simulation:
     """
@@ -80,9 +80,9 @@ class TUMA_MTL_Simulation:
     def __init__(self, num_sensors, num_targets, area_side, zone_side, sigma_noise,
                  N_s, P_s, sigma_n, S, fc, gamma,
                  perfect_measurement, max_detections_per_sensor, N_c, M, A, rho, d0, 
-                 SNR_rx_dB, P_c, nAMPIter, nMCs, 
+                 SNR_rx_dB, P_c, nAMPIter, nMCs, c, 
                  N_MC, N_MC_smaller=1, perfect_comm=False, decoder_type="centralized", withOnsager=False, Kmax=25, plot_perf=False, boxplot_flag=False,
-                 perfect_CSI=True, imperfection_model="phase", sigma_noise_e=1, phase_max=np.pi/6, keep_SNRrx_fixed=True):
+                 perfect_CSI=True, imperfection_model="phase", sigma_noise_e=1, phase_max=np.pi/6, keep_SNRrx_fixed=True, p=2):
         """
         Initializes simulation parameters.
         
@@ -151,11 +151,14 @@ class TUMA_MTL_Simulation:
         self.sigma_noise_e = sigma_noise_e
         self.phase_max = phase_max
         self.keep_SNRrx_fixed = keep_SNRrx_fixed
+        self.c = c
+        self.p = p
 
         # Store performance results
         self.tv_dists = np.zeros(nMCs)
         self.ws_dists = np.zeros(nMCs)
         self.empirical_p_mds = np.zeros(nMCs)
+        self.dGOSPAlikes = np.zeros(nMCs)
 
         # Store environments
         self.sensing_env = None
@@ -218,31 +221,34 @@ class TUMA_MTL_Simulation:
             tv_dist = tv_distance(self.TUMA_env.true_type, self.TUMA_env.estimated_type)
 
             # ii) empirical misdetection probability for sensing errors:
+            # iii) wasserstein distance for comm + quant errors:
+            # iv) GOSPA-like cost for comm + quant + sensing errors:
             true_positions = np.array([target.position for target in targets])
             detected_positions, _, true_target_type = get_true_positions_and_type(active_sensors)
-            p_md = 1 - len(detected_positions)/len(true_positions)
-            
-            # iii) wasserstein distance for comm + quant errors:
-            estimated_positions = self.quant_env.quantized_positions
-            ws_distance = wasserstein_distance(
-                detected_positions.reshape(-1, 1),
-                estimated_positions.reshape(-1, 1),
-                true_target_type.reshape(-1, 1),
-                self.TUMA_env.estimated_type.reshape(-1, 1)
+
+            p_md, ws_distance, dGOSPAlike = compute_tuma_mtl_performance_metric(
+                true_positions,
+                detected_positions,
+                self.quant_env.quantized_positions,
+                true_target_type,
+                self.TUMA_env.estimated_type,
+                c=self.c,
+                p=self.p
             )
 
             # Store results
             self.tv_dists[idxMC] = tv_dist
             self.empirical_p_mds[idxMC] = p_md
             self.ws_dists[idxMC] = ws_distance
+            self.dGOSPAlikes[idxMC] = dGOSPAlike
 
             # Log performance values to a file
-            self.log_performance(idxMC, tv_dist, p_md, ws_distance)
+            self.log_performance(idxMC, tv_dist, p_md, ws_distance, dGOSPAlike)
 
         except Exception as e:
             print(f"An error occurred: {e}")
 
-    def log_performance(self, idxMC, tv_dist, p_md, ws_distance):
+    def log_performance(self, idxMC, tv_dist, p_md, ws_distance, dGOSPAlike):
         """ Logs performance results to a structured CSV file. """
         # Determine the correct folder based on communication type
         if self.perfect_comm:
@@ -280,11 +286,11 @@ class TUMA_MTL_Simulation:
         file_exists = os.path.exists(log_filename)
         with open(log_filename, "a") as f:
             if idxMC == 0 or not file_exists:
-                f.write("timestamp,MC_idx,tv_dist,p_md,ws_distance\n")  # Write header if file is new or it's the first MC simulation
+                f.write("timestamp,MC_idx,tv_dist,p_md,ws_distance[m],GOSPAlike_cost[m]\n")  # Write header if file is new or it's the first MC simulation
             # Get current timestamp
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             # Write data entry
-            f.write(f"{timestamp},{idxMC},{tv_dist},{p_md},{ws_distance}\n")
+            f.write(f"{timestamp},{idxMC},{tv_dist},{p_md},{ws_distance*1000},{dGOSPAlike*1000}\n")
         print(f"\tLogged results to {log_filename}")
 
     def run(self):
@@ -296,11 +302,11 @@ class TUMA_MTL_Simulation:
             if self.boxplot_flag:
                 for u in range(self.topology.U):
                     self.all_mults[u] += self.mults[u]
-        return self.tv_dists, self.empirical_p_mds, self.ws_dists
+        return self.tv_dists, self.empirical_p_mds, self.ws_dists, self.dGOSPAlikes
 
     def get_results(self):
         """ Returns the stored performance metrics. """
-        return self.tv_dists, self.empirical_p_mds, self.ws_dists
+        return self.tv_dists, self.empirical_p_mds, self.ws_dists, self.dGOSPAlikes
 
     def run_to_get_pmd(self):
         n_missed_detections = np.zeros(self.nMCs)
