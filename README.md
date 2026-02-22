@@ -40,7 +40,6 @@ The project structure is as follows:
 ```bash
 ./
 ├── README.md                       # Project overview and usage instructions
-├── .gitignore
 │
 ├── TUMA_MTL_demo.ipynb             # Interactive demo notebook (visuals + runnable cells)
 │
@@ -96,12 +95,7 @@ You can run the project in two modes of execution:
 
     To customize the system parameters, change the system parameters in `Setting Parameters` section in `TUMA_MTL_demo.ipynb`.
 
-This provides a user-friendly way to explore the setup for a single MC run. You would find the details of each step to understand the end-to-end system. To run the demo:
-    * Open a terminal in the main directory.
-    * Run the following command:
-        ```
-        python -m streamlit run run_GUI.py
-        ```
+
 
 ## Citation
 
